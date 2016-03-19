@@ -7,6 +7,8 @@ Analyses the history of a git project and replays webhooks
 from git import Repo
 import time
 import json
+import urlparse
+import httplib
 
 
 
@@ -32,7 +34,6 @@ def process_commit(commit):
         for change_type in ("A", "D", "R", "M"):
             for change in diff.iter_change_type(change_type):
                 files[change_type].append(change.b_path)
-        print("           " + commit.hexsha)
 
     result = {
         "id": commit.hexsha,
@@ -53,12 +54,7 @@ def process_commit(commit):
     return result
 
 
-def process_branch(repo, branch_name):
-    commits = list(repo.iter_commits(branch_name))
-    commit_list = []
-    for commit in commits:
-        commit_list.append(process_commit(commit))
-
+def post(branch_name, commit_list):
     result = {
         "ref" : "ref/heads/" + branch_name,
         "replay": True,
@@ -67,8 +63,31 @@ def process_branch(repo, branch_name):
             "name" : repo.working_dir[repo.working_dir.rfind("/")+1:],
             "url" : REPO_URL
         }
-    }    
-    print(json.dump(result))
+    }
+    start = time.time()
+    u = urlparse.urlparse(url)
+    con = httplib.HTTPConnection(u.hostname, u.port)
+    con.request("POST", url, json.dumps(result), {"Content-Type": "application/json"})
+    con.getresponse().read
+    print(time.time() - start)
+
+
+def process_branch(repo, branch_name):
+    commits = list(repo.iter_commits(branch_name))
+    commit_list = []
+    i = 0
+    for commit in commits:
+        commit_list.append(process_commit(commit))
+        i = i + 1
+        if i > 200:
+            post(branch_name, commit_list)
+            commit_list = []
+            i = 0
+
+    if len(commit_list) > 0:
+        post(branch_name, commit_list)
+    
+
 
 
 for branch in repo.heads:
