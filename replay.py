@@ -26,8 +26,19 @@ class ReplayWebhook:
         self.home_url = home_url
 
 
-    @staticmethod
-    def process_commit(commit):
+    def list_tree(self, out, tree):
+        """Recursivly lists all files of a tree (e. g. a commit)"""
+
+        for entry in tree:
+            if entry.type == "blob":
+                out.append(entry.path)
+            elif entry.type == "tree":
+                self.list_tree(out, entry)
+
+
+    def process_commit(self, commit):
+        """processes a commit"""
+
         files = {
             "A" : [],
             "D": [],
@@ -35,12 +46,14 @@ class ReplayWebhook:
             "R": []
         }
 
-        # TODO: Handle first commit
-        for parent in commit.parents:
-            diff = parent.diff(commit)
-            for change_type in ("A", "D", "R", "M"):
-                for change in diff.iter_change_type(change_type):
-                    files[change_type].append(change.b_path)
+        if len(commit.parents) > 0:
+            for parent in commit.parents:
+                diff = parent.diff(commit)
+                for change_type in ("A", "D", "R", "M"):
+                    for change in diff.iter_change_type(change_type):
+                        files[change_type].append(change.b_path)
+        else:
+            self.list_tree(files["A"], commit.tree)
 
         result = {
             "id": commit.hexsha,
@@ -62,6 +75,8 @@ class ReplayWebhook:
 
 
     def post(self, branch_name, commit_list):
+        """Invokes the web hook"""
+
         result = {
             "ref" : "ref/heads/" + branch_name,
             "replay": True,
@@ -80,6 +95,8 @@ class ReplayWebhook:
 
 
     def process_branch(self, branch_name):
+        """Processes the specified branch"""
+
         commits = list(self.repo.iter_commits(branch_name))
         commit_list = []
         i = 0
@@ -94,7 +111,10 @@ class ReplayWebhook:
         if len(commit_list) > 0:
             self.post(branch_name, commit_list)
 
+
     def process(self):
+        """Processes all branches of the specified repository"""
+
         for branch in self.repo.heads:
             print(branch)
             self.process_branch(branch.name)
@@ -123,6 +143,7 @@ def main():
         sys.stderr.write(repr(e) + "\n")
         sys.stderr.write("  for help use --help")
         return 2
+
 
 if __name__ == "__main__":
     sys.exit(main())
