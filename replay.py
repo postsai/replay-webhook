@@ -27,7 +27,7 @@ class ReplayWebhook:
 
         self.excluded_commits = []
         if exclude_master_commits:
-            self.excluded_commits = list(self.repo.iter_commits("master"))
+            self.excluded_commits = set(self.repo.iter_commits("master"))
 
 
     def list_tree(self, out, tree):
