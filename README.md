@@ -11,13 +11,14 @@ usage: replay.py [-h] --home-url URL [--name NAME] --url URL repo
 
 
 optional arguments:
-  -h, --help      show this help message and exit
-  --home-url URL  Base URL of the web frontend
-  --name NAME     Name of repository
-  --url URL       URL of the webhook to invoke
+  --help                    show this help message and exit
+  --home-url URL            Base URL of the web frontend
+  --include-master-commits  Also include commits on other branches that are part
+   --name NAME              Name of repository
+  --url URL                 URL of the webhook to invoke
 
 positional arguments:
-  repo            path to repository
+  repo                      path to repository
 ```
 
 

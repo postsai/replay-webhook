@@ -17,13 +17,17 @@ class ReplayWebhook:
     """Replays webhooks calls from the existing history of a git repository"""
 
 
-    def __init__(self, url, repo_path, name, home_url):
+    def __init__(self, url, repo_path, name, home_url, exclude_master_commits):
         self.url = url
         self.repo = Repo.init(repo_path)
         self.repo_name = name
         if name == "":
             self.repo_name = self.repo.working_dir[self.repo.working_dir.rfind("/")+1:]
         self.home_url = home_url
+
+        self.excluded_commits = []
+        if exclude_master_commits:
+            self.excluded_commits = list(self.repo.iter_commits("master"))
 
 
     def list_tree(self, out, tree):
@@ -101,12 +105,13 @@ class ReplayWebhook:
         commit_list = []
         i = 0
         for commit in commits:
-            commit_list.append(self.process_commit(commit))
-            i = i + 1
-            if i > 200:
-                self.post(branch_name, commit_list)
-                commit_list = []
-                i = 0
+            if branch_name == "master" or not commit in self.excluded_commits:
+                commit_list.append(self.process_commit(commit))
+                i = i + 1
+                if i > 200:
+                    self.post(branch_name, commit_list)
+                    commit_list = []
+                    i = 0
 
         if len(commit_list) > 0:
             self.post(branch_name, commit_list)
@@ -122,18 +127,19 @@ class ReplayWebhook:
 
 def main():
     '''Main'''
-    
+
     try:
         # Setup argument parser
         parser = ArgumentParser(description="Replay Webhooks", formatter_class=RawDescriptionHelpFormatter)
         parser.add_argument("--home-url", dest="home_url", metavar="URL", required=True, help="Base URL of the web frontend")
+        parser.add_argument("--include-master-commits", action="store_true", dest="include_master_commits", help="Also include commits on other branches that are part of master")
         parser.add_argument("--name", dest="name", metavar="NAME", default="", help="Name of repository")
         parser.add_argument("--url", dest="url", metavar="URL", required=True, help="URL of the webhook to invoke")
         parser.add_argument(dest="repo", help="path to repository", metavar="repo")
 
         # Process arguments
         args = parser.parse_args()
-        ReplayWebhook(args.url, args.repo, args.name, args.home_url).process()
+        ReplayWebhook(args.url, args.repo, args.name, args.home_url, not args.include_master_commits).process()
 
         return 0
     except KeyboardInterrupt:
