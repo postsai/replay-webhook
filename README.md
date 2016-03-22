@@ -21,6 +21,10 @@ positional arguments:
   repo                      path to repository
 ```
 
+Dependencies
+-
+
+replay-webhook dependes on python-git.
 
 Legal
 -
