@@ -21,6 +21,16 @@ positional arguments:
   repo                      path to repository
 ```
 
+Tips
+-
+
+You can checkout all remote branches as local branches with this oneliner:
+
+``` shell
+for i in `git branch -a | grep remotes/origin`; do git branch --track ${i#remotes/origin/} $i; done
+```
+
+
 Dependencies
 -
 
