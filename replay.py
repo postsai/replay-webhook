@@ -92,7 +92,10 @@ class ReplayWebhook:
         }
         start = time.time()
         u = urlparse.urlparse(self.url)
-        con = httplib.HTTPConnection(u.hostname, u.port)
+        if u.scheme == "https":
+            con = httplib.HTTPSConnection(u.hostname, u.port)
+        else:
+            con = httplib.HTTPConnection(u.hostname, u.port)
         con.request("POST", self.url, json.dumps(result), {"Content-Type": "application/json"})
         con.getresponse().read
         print(time.time() - start)
