@@ -59,9 +59,14 @@ class ReplayWebhook:
         else:
             self.list_tree(files["A"], commit.tree)
 
+        try:
+            message = commit.message.encode("UTF-8", "replace")
+        except UnicodeDecodeError:
+            message = commit.message.decode("ISO-8859-1")
+
         result = {
             "id": commit.hexsha,
-            "message": commit.message,
+            "message": message,
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(commit.committed_date)),
             "author": {
                 "name": commit.author.name,
@@ -96,7 +101,9 @@ class ReplayWebhook:
             con = httplib.HTTPSConnection(u.hostname, u.port)
         else:
             con = httplib.HTTPConnection(u.hostname, u.port)
-        con.request("POST", self.url, json.dumps(result), {"Content-Type": "application/json"})
+
+        data = json.dumps(result)
+        con.request("POST", self.url, data, {"Content-Type": "application/json"})
         con.getresponse().read
         print(time.time() - start)
 
@@ -142,9 +149,7 @@ def main():
 
         # Process arguments
         args = parser.parse_args()
-        ReplayWebhook(args.url, args.repo, args.name, args.home_url, not args.include_master_commits).process()
 
-        return 0
     except KeyboardInterrupt:
         ### handle keyboard interrupt ###
         return 0
@@ -153,6 +158,8 @@ def main():
         sys.stderr.write("  for help use --help")
         return 2
 
+    ReplayWebhook(args.url, args.repo, args.name, args.home_url, not args.include_master_commits).process()
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())
