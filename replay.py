@@ -6,6 +6,7 @@ Analyses the history of a git project and replays webhooks
 
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+import base64
 import sys
 from git import Repo
 import time
@@ -86,6 +87,11 @@ class ReplayWebhook:
     def post(self, branch_name, commit_list):
         """Invokes the web hook"""
 
+        headers = {
+            "Content-Type": "application/json",
+            'X-Git-Event': 'push',
+        }
+
         result = {
             "ref" : "ref/heads/" + branch_name,
             "replay": True,
@@ -101,9 +107,11 @@ class ReplayWebhook:
             con = httplib.HTTPSConnection(u.hostname, u.port)
         else:
             con = httplib.HTTPConnection(u.hostname, u.port)
+        if not u.username == None and not u.password == None:
+            headers["Authorization"] = "Basic " + base64.b64encode(u.username + ":" + u.password)
 
         data = json.dumps(result)
-        con.request("POST", self.url, data, {"Content-Type": "application/json"})
+        con.request("POST", self.url, data, headers)
         con.getresponse().read
         print(time.time() - start)
 
