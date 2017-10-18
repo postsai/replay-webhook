@@ -111,7 +111,10 @@ class ReplayWebhook:
             headers["Authorization"] = "Basic " + base64.b64encode(u.username + ":" + u.password)
 
         data = json.dumps(result)
-        con.request("POST", self.url, data, headers)
+        url_prefix = u.scheme + "://" + u.hostname + u.path
+        if u.query != "":
+            url_prefix = url_prefix + "?" + u.query
+        con.request("POST", url_prefix, data, headers)
         con.getresponse().read
         print(time.time() - start)
 
